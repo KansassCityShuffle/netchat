@@ -32,7 +32,7 @@ is_addr()
 get_default_addr()
 {
 	iface=$(route | grep "default" | awk -F " " '{ print $NF }')
-	addr=$( ifconfig "$iface" | grep "inet adr" | cut -d ":" -f 2 | cut -d ' ' -f 1 ) 
+	addr=$( ifconfig "$iface" | grep "inet adr" | cut -d ":" -f 2 | cut -d ' ' -f 1 )
 	echo "$addr"
 }
 
@@ -125,10 +125,10 @@ main()
 	if [ "$port" = 0 ]; 	then get_port; 	fi
 	if [ "$addr" = 0 ]; 	then get_addr; 	fi
 	if [ "$name" = 0 ];	then get_name; 	fi
-	
+
 	echo "Remote port : $port"
 	echo "Remote addr : $addr"
-	echo "User name : $name" 
+	echo "User name : $name"
 	# echo "Connect with remote listener..."
 	# nc -l "$ip" "$port"
 }
