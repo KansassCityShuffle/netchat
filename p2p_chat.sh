@@ -29,6 +29,13 @@ is_addr()
 	fi
 }
 
+get_default_addr()
+{
+	iface=$(route | grep "default" | awk -F " " '{ print $NF }')
+	addr=$( ifconfig "$iface" | grep "inet adr" | cut -d ":" -f 2 | cut -d ' ' -f 1 ) 
+	echo "$addr"
+}
+
 get_options()
 {
 	while getopts "p:a:n:" opt; do
@@ -42,7 +49,7 @@ get_options()
 				;;
 			a)
 				if [[ "$OPTARG" = "DEFAULT" ]]; then
-					addr="10.2.240.192"
+					get_default_addr
 				elif is_addr "$OPTARG"; then
 					addr="$OPTARG"
 				fi
@@ -86,6 +93,12 @@ get_addr()
 	done
 }
 
+get_name()
+{
+	echo -n "Type your user name, followed by [ENTER]: "
+	read name
+}
+
 connect()
 {
 	echo "Connect with remote listener..."
@@ -112,7 +125,10 @@ main()
 	if [ "$port" = 0 ]; 	then get_port; 	fi
 	if [ "$addr" = 0 ]; 	then get_addr; 	fi
 	if [ "$name" = 0 ];	then get_name; 	fi
-
+	
+	echo "Remote port : $port"
+	echo "Remote addr : $addr"
+	echo "User name : $name" 
 	# echo "Connect with remote listener..."
 	# nc -l "$ip" "$port"
 }
