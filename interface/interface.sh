@@ -3,6 +3,10 @@
 # Creates a dual-panel interface using screen
 # Usage: interface.sh <username> <channel>
 
+set -o errexit
+set -o pipefail
+set -o nounset
+
 main()
 {
 	user=$1

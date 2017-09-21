@@ -81,17 +81,21 @@ main()
 
 	get_network_infos
 
+<<COMMENT
 	echo "User name : $username"
 	echo "Local ports range : $ports"
 	echo "Local addr : $user_addr"
 	echo "Bcast addr : $bcast_addr"
+COMMENT
 
 	netchat_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	if [ -d "${netchat_dir}/data" ]; then rm -Rf "${netchat_dir}/data"; fi
 	mkdir -p "${netchat_dir}/data/${username}/home"
 	mkfifo "${netchat_dir}/data/${username}/home/in"
 	mkfifo "${netchat_dir}/data/${username}/home/out"
-}
 
+	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" &
+	./interface/interface.sh "$username" "home"
+}
 main $@
 exit 0

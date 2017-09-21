@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+set -o nounset
 
 main()
 {
+	echo "main"
 	cur_user=$SC_USER
 	cur_chan=$SC_CHANNEL
 
@@ -9,8 +13,8 @@ main()
 
 	while [ -p $in_pipe ]
 	do
-		read input < $in_pipe
-		echo $input
+		read -d "$(echo -e '\004')" input < $in_pipe
+		echo -e "$input"
 	done
 }
 
