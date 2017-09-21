@@ -16,8 +16,9 @@ main()
 	export SC_USER=$user
 	export SC_CHANNEL=$channel
 	screen -S $channel -c interface/screen.cfg
-}
 
+	logfile="$( pwd )/log/interface_${channel}.log"
+}
 
 main $@
 exit 0

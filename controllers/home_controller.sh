@@ -4,18 +4,11 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+logfile="$( pwd )/log/home_controller.log"
+
 usage()
 {
   echo "Usage: $0 username user_addr bcast_addr ports"
-}
-
-write_to_room()
-{
-  if [ -p $out_pipe ]; then
-    for item in "$@"; do
-      echo -ne "$item " > "$out_pipe"
-    done
-  fi
 }
 
 read_from_room()
@@ -27,20 +20,25 @@ read_from_room()
                 ;;
       "infos")
                 if [[ -p "$out_pipe" ]]; then
-                  echo "Username : ${username} \n User addr : ${user_addr}" > "$out_pipe"
+                  echo -e " Username : ${username} \nUser addr : ${user_addr} \nBcast addr : ${bcast_addr}\nPorts range : ${ports}" > "$out_pipe"
                 else
+                  echo "Out pipe is broken." > $logfile
                   break;
                 fi
                 ;;
       "connect")
                 ;;
       "exit")
-                rm -f $out_pipe
-                rm -f $in_pipe
-                exit 0
+                if [[ -p "$out_pipe" ]]; then
+                  echo "exit" > "$out_pipe"
+                  rm -f "$in_pipe"
+                  break
+                fi
                 ;;
     esac
   done
+  # echo "Out / In pipe are broken. Closing Screen home session." > $logfile
+  # screen -S home -X quit
 }
 
 main()

@@ -11,12 +11,17 @@ main()
 
 	out_pipe=data/$cur_user/$cur_chan/out
 
+	logfile="$( pwd )/log/prompt_${cur_chan}.log"
+
 	while [ -p $out_pipe ]
 	do
 		clear
 		echo -ne " > "
 		read cmd
-		echo $cmd > $out_pipe
+		echo "$cmd" > "$out_pipe"
+		if [[ "$cmd" = "exit" ]]; then
+			break
+		fi
 	done
 }
 

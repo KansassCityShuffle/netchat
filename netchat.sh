@@ -74,28 +74,27 @@ main()
 	bcast_addr=0
 	username=0
 
+	# retrieve user informations
 	if (( $# > 0 )); then get_options $@; fi
-
 	if [ "$ports" = 0 ]; then ports="$default_ports"; fi
 	if [ "$username" = 0 ]; then username="$USER"; fi
 
 	get_network_infos
 
-<<COMMENT
-	echo "User name : $username"
-	echo "Local ports range : $ports"
-	echo "Local addr : $user_addr"
-	echo "Bcast addr : $bcast_addr"
-COMMENT
-
+	# prepare file system
 	netchat_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-	if [ -d "${netchat_dir}/data" ]; then rm -Rf "${netchat_dir}/data"; fi
+
+	if [ -d "${netchat_dir}/data" ]; then rm -Rf "${netchat_dir}/data/*"; fi
 	mkdir -p "${netchat_dir}/data/${username}/home"
 	mkfifo "${netchat_dir}/data/${username}/home/in"
 	mkfifo "${netchat_dir}/data/${username}/home/out"
 
+	if [ -d  "${netchat_dir}/log" ]; then rm -Rf "${netchat_dir}/log/*"; fi
+
+	# start interface and home "controller"
 	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" &
 	./interface/interface.sh "$username" "home"
 }
+
 main $@
 exit 0
