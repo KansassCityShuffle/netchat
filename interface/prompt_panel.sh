@@ -7,7 +7,7 @@ main()
 
 	out_pipe=data/$cur_user/$cur_chan/out
 
-	while [ -f $out_pipe ]
+	while [ -p $out_pipe ]
 	do
 		clear
 		echo -ne " > "

@@ -7,7 +7,7 @@ main()
 
 	in_pipe=data/$cur_user/$cur_chan/in
 
-	while [ -f $in_pipe ]
+	while [ -p $in_pipe ]
 	do
 		read input < $in_pipe
 		echo $input
