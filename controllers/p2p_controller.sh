@@ -18,7 +18,7 @@ function start_client()
 	# TODO: put "resulting_pid" to -1 if socat not working
 
 	# Start socat, linking the pipe with the socket
-	socat -d -d -d PIPE:$3 TCP:$1:$2,retry=5 &
+	socat -d -d PIPE:$3 TCP:$1:$2,retry=5 &
 	# Write PID of socat into last argument
 	eval "$4=$!"
 }
@@ -30,7 +30,7 @@ function start_server()
 	# TODO: put "resulting_pid" to -1 if socat not working
 
 	# Start socat, linking the pipe with the socket
-	socat -d -d -d TCP-LISTEN:$1,reuseaddr PIPE:$2 &
+	socat -d -d TCP-LISTEN:$1,reuseaddr PIPE:$2 &
 	# Write PID of socat into last argument
 	eval "$3=$!"
 }
