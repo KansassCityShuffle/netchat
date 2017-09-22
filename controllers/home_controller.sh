@@ -13,25 +13,28 @@ usage()
 
 read_from_room()
 {
-  while [ -p $in_pipe ]; do
-    read input < $in_pipe
+  while [ -p $in ]; do
+    read input < $in
     case "$input" in
+      "discover")
+                echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast
+                ;;
       "list")
                 ;;
       "infos")
-                if [[ -p "$out_pipe" ]]; then
-                  echo -e " Username : ${username} \nUser addr : ${user_addr} \nBcast addr : ${bcast_addr}\nPorts range : ${ports}" > "$out_pipe"
+                if [[ -p "$out" ]]; then
+                  echo -e " Username : ${username} \nUser addr : ${user_addr} \nBcast addr : ${bcast_addr}\nPorts range : ${ports}" > "$out"
                 else
-                  echo "Out pipe is broken." > $logfile
-                  break;
+                  echo "[\"infos\" command] out pipe (named in) is break;broken." > $logfile
+                  exit 1
                 fi
                 ;;
       "connect")
                 ;;
       "exit")
-                if [[ -p "$out_pipe" ]]; then
-                  echo "exit" > "$out_pipe"
-                  rm -f "$in_pipe"
+                if [[ -p "$out" ]]; then
+                  echo "exit" > "$out"
+                  rm -f "$in"
                   break
                 fi
                 ;;
@@ -41,8 +44,40 @@ read_from_room()
   # screen -S home -X quit
 }
 
+read_from_network()
+{
+  while [ -p $net_in ]; do
+    read input < $net_in
+    case "$input" in
+      "discover")
+                echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast
+                ;;
+      "list")
+                ;;
+      "infos")
+                if [[ -p "$out" ]]; then
+                  echo -e " Username : ${username} \nUser addr : ${user_addr} \nBcast addr : ${bcast_addr}\nPorts range : ${ports}" > "$out"
+                else
+                  echo "[\"infos\" command] out pipe (named in) is break;broken." > $logfile
+                  exit 1
+                fi
+                ;;
+      "connect")
+                ;;
+      "exit")
+                if [[ -p "$out" ]]; then
+                  echo "exit" > "$out"
+                  rm -f "$in"
+                  break
+                fi
+                ;;
+    esac
+  done
+}
+
 main()
 {
+  # Retreive script parameters
   if [[ $# != 4 ]]; then
     usage
     exit 1
@@ -53,9 +88,26 @@ main()
     ports="$4"
   fi
 
+  # Store pipes paths
   netchat_dir="$( pwd )"
-  out_pipe="${netchat_dir}/data/${username}/home/in"
-  in_pipe="${netchat_dir}/data/${username}/home/out"
+  out="${netchat_dir}/data/${username}/home/in"
+  in="${netchat_dir}/data/${username}/home/out"
+  net_out="${netchat_dir}/data/${username}/home/net_in"
+  net_in="${netchat_dir}/data/${username}/home/net_out"
+
+  # Build socat packets
+  disco="DISCO:${username}:${user_addr}"
+  unidisco="UDISCO:${username}:${user_addr}"
+
+  # Listen for a while
+  socat -u udp-recv:24000,reuseaddr PIPE:"$net_in" &
+  listener_pid=$!
+
+  # Discover
+  echo "$disco" | socat - udp-sendto:${bcast_addr}:24000,broadcast
+
+  # Do job until pipes are broken
+  # read_from_network
   read_from_room
 }
 

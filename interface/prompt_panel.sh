@@ -23,6 +23,8 @@ main()
 			break
 		fi
 	done
+
+	echo "i am here " > $logfile 
 }
 
 main $@
