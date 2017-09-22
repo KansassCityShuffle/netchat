@@ -88,8 +88,11 @@ main()
 	mkdir -p "${netchat_dir}/data/${username}/home"
 	mkfifo "${netchat_dir}/data/${username}/home/in"
 	mkfifo "${netchat_dir}/data/${username}/home/out"
+  mkfifo "${netchat_dir}/data/${username}/home/net_in"
+  mkfifo "${netchat_dir}/data/${username}/home/net_out"
 
-	if [ -d  "${netchat_dir}/log" ]; then rm -Rf "${netchat_dir}/log/*"; fi
+	if [ -d  "${netchat_dir}/log" ]; then rm -Rf "${netchat_dir}/log"; fi
+	mkdir "${netchat_dir}/log"
 
 	# start interface and home "controller"
 	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" &
