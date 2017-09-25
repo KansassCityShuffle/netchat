@@ -17,7 +17,7 @@ read_from_room()
     read input < $in
     case "$input" in
       "discover")
-                # echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast
+                echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast 2>"$logfile"
                 echo '' > "$out"
                 ;;
       "list")
@@ -48,8 +48,7 @@ read_from_network()
 {
   while [ -p $net_in ]; do
 
-    read net_input < $net_in
-    echo "$net_input" > $logfile
+    read net_input < $net_in 2>"$logfile"
 
     username_re="[[:alnum:]]{1,10}"
     addr_re="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"
@@ -63,7 +62,7 @@ read_from_network()
       echo -e ${BASH_REMATCH[3]} > "$out"
       if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
         # echo "$unidisco" | socat - udp-sendto:${BASH_REMATCH[3]}:24000,unicast
-        echo -e "Discovery message received from other user"
+        echo -e "Discovery message received from other user" > "$out"
       fi
     elif [[ "$net_input" =~ $unidisco_re ]]; then
       echo -e "Unicast discovery msg received" > "$out"
@@ -102,11 +101,11 @@ main()
   unidisco="UDISCO:${username}:${user_addr}"
 
   # Listen for ever
-  socat -u udp-recv:24000,reuseaddr PIPE:"$net_in" &
+  socat -u udp-recv:24000,reuseaddr PIPE:"$net_in" & 2>"$logfile"
   listener_pid=$!
 
   # Auto discover
-  echo "$disco" | socat - udp-sendto:${bcast_addr}:24000,broadcast
+  echo "$disco" | socat - udp-sendto:${bcast_addr}:24000,broadcast 2>"$logfile"
 
   # Do job until pipes are broken
   read_from_network &
