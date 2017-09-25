@@ -10,39 +10,86 @@
 # Reads from "loc_out" (user input) and write to "loc_in" user echo and
 # peer input
 
+source util/logging.sh
+trap cleanup EXIT
+
+
+# Special logging: specify current session for clarity
+# Usage: slog <message>
+function slog()
+{
+	log "[${cur_user}-${peer_name}] $@"
+}
 
 # Connect to distant listener
 # Usage: start_client <peer_ip> <peer_port> <net_out> <resulting_pid>
 function start_client()
 {
-	# TODO: put "resulting_pid" to -1 if socat not working
-
 	# Start socat, linking the pipe with the socket
-	socat -d -d PIPE:$3 TCP:$1:$2,retry=5 &
-	# Write PID of socat into last argument
-	eval "$4=$!"
+	cli_log_file="log/p2p_socat_cli_${cur_user}_${peer_name}.log"
+	socat -d -d -d PIPE:$3 TCP:$1:$2,retry=5 >> ${cli_log_file} 2>&1 &
+	# Write PID of socat
+	spid=$(jobs -p)
+	slog "socat client pid = $spid"
+	cli_pid=$spid
 }
 
 # Create listener
-# Usage: start_server <port> <net_in> <resulting_pid>
+# Usage: start_server <port> <net_in>
 function start_server()
 {
 	# TODO: put "resulting_pid" to -1 if socat not working
 
 	# Start socat, linking the pipe with the socket
-	socat -d -d TCP-LISTEN:$1,reuseaddr PIPE:$2 &
-	# Write PID of socat into last argument
-	eval "$3=$!"
+	srv_log_file="log/p2p_socat_srv_${cur_user}_${peer_name}.log"
+	socat -d -d -d TCP-LISTEN:$1,reuseaddr PIPE:$2 >> ${srv_log_file} 2>&1 &
+	# Write PID of socat
+	spid=$(jobs -p)
+	slog "socat server pid = $spid"
+	srv_pid=$spid
 }
 
-usage()
+
+# Send packet to peer and log it
+function send()
+{
+	slog "sent \"$1\""
+	echo "$1" > $net_out
+}
+
+
+# Usage
+function usage()
 {
 	echo "Usage: p2p_controller.sh <username> <channel> <user_ip> <port_range>"
 	echo "                         <mode> <peer_ip> [<peer_port>]"
 }
 
-main()
+
+# Cleanup (for trap)
+function cleanup()
 {
+	slog "Cleaning up on exit"
+
+	# Terminate background running socat's
+
+	if [ "$srv_pid" != "-1" ]; then
+		kill -15 $srv_pid 2>&1 | logp $logfile
+	fi
+	if [ "$cli_pid" != "-1" ]; then
+		kill -15 $cli_pid 2>&1 | logp $logfile
+	fi
+
+
+	# Exit with error
+	exit 1
+}
+
+
+function main()
+{
+	slog "Arguments: $@"
+
 	if [ "$#" -lt 6 ]; then
 		usage
 		exit 1
@@ -51,23 +98,25 @@ main()
 	# Init variables
 	cur_user=$1
 	cur_chan=$2
-	mkdir -p data/$cur_user/$cur_chan
-	loc_out=data/$cur_user/$cur_chan/out      # interface -> controller
-	loc_in=data/$cur_user/$cur_chan/in        # controller -> interface
-	net_out=data/$cur_user/$cur_chan/net_out  # controller -> socket
-	net_in=data/$cur_user/$cur_chan/net_in    # socket -> controller
-	peer_name="unknown"
+	logfile="log/p2p_controller_${cur_user}_${cur_chan}.log"
+	mkdir -p "data/$cur_user/$cur_chan"
+	loc_out="data/$cur_user/$cur_chan/out"      # interface -> controller
+	loc_in="data/$cur_user/$cur_chan/in"        # controller -> interface
+	net_out="data/$cur_user/$cur_chan/net_out"  # controller -> socket
+	net_in="data/$cur_user/$cur_chan/net_in"    # socket -> controller
+	peer_name=$2
 	srv_pid=-1
 	cli_pid=-1
 	user_ip=$3
-	IFS='-' read -r -a tokens <<< "$4"
-	user_port_min=${tokens[0]}
-	user_port_max=${tokens[1]}
+	user_port_range=$4
 	mode=$5
 	peer_ip=$6
 	session_valid=1
 
-	if [ "$#" -eq 7 ]; then
+	if [ "$mode" = "reception" ] && [ "$#" -lt 7 ]; then
+		usage
+		exit 1
+	elif [ "$mode" = "reception" ]; then
 		peer_port=$7
 	else
 		peer_port=-1
@@ -75,26 +124,18 @@ main()
 
 
 	# Create pipes
-	mkfifo $loc_in
-	mkfifo $loc_out
-	mkfifo $net_in
-	mkfifo $net_out
+	mkfifo $loc_in 2>&1 | logp $logfile
+	mkfifo $loc_out 2>&1 | logp $logfile
+	mkfifo $net_in 2>&1 | logp $logfile
+	mkfifo $net_out 2>&1 | logp $logfile
 
 
 	# Search for a free port in user range
-	user_port=$user_port_min
-	free_found=0
-	while [ $free_found -eq 0 ] && [ $user_port -le $user_port_max ]; do
-		netstat -vatn | grep $user_port > /dev/null
-		if [ "$?" -eq 0 ]; then
-			user_port=$(($user_port + 1))
-		else
-			free_found=1
-		fi
-	done
+	user_port=$(util/find_port.sh $user_port_range)
 
-	if [ $free_found -eq 0 ]; then
-		echo "** No free port in range ${port_min}-$port_max, aborting" > $loc_in
+	if [ $user_port -eq -1 ]; then
+		echo "** No free port in range $user_port_range, aborting" > $loc_in
+		slog "No free port in range $user_port_range !"
 		session_valid=0
 	else
 		echo "** Using port $user_port for data" > $loc_in
@@ -102,7 +143,7 @@ main()
 		echo "** Connecting..." > $loc_in
 
 		# Start the listening server
-		start_server $user_port $net_in srv_pid
+		start_server $user_port $net_in
 		if [ "$srv_pid" -eq "-1" ]; then
 			session_valid=0
 			echo "** Could not start data server" > $loc_in
@@ -114,14 +155,16 @@ main()
 	# We initialized the session
 	if [[ "$mode" = "emission" ]] && [ "$session_valid" -eq "1" ]; then
 		# Send "connect" packet to peer
-		echo "CONNECT:$cur_user:$user_ip:$user_port" | socat - udp-sendto:$peer_ip:24000
-
+		udp_unicast_logfile="log/p2p_socat_udp_${cur_user}_${peer_name}.log"
+		echo "CONNECT:$cur_user:$user_ip:$user_port" | socat -d -d -d - udp-sendto:$peer_ip:24000 > $udp_unicast_logfile 2>&1
+		slog "Sent packet: CONNECT:$cur_user:$user_ip:$user_port"
 		# Wait for answer packet
 		connected=0
 		while [ $connected -eq 0 ];	do
 
 			# TODO: TIMEOUT HANDLING
 			read line < $net_in
+			slog "got packet: $line"
 
 			# Parse message
 			IFS=':' read -r -a tokens <<< "$line"
@@ -132,17 +175,18 @@ main()
 				connected=1
 			else
 				echo "** Peer reply is invalid" > $loc_in
+				slog "Could not parse packet"
 				session_valid=0
 			fi
 
 			# Connect to peer listener
-			start_client $peer_ip $peer_port $net_out cli_pid
-			if [ "$cli_pid" -eq "-1" ]; then
+			start_client $peer_ip $peer_port $net_out
+			if [ "$cli_pid" = "-1" ]; then
 				echo "** Could not start data client" > $loc_in
 				session_valid=0
 			else
 				# Send OKCONNECT to peer
-				echo "OKCONNECT:$cur_user:$user_ip:$user_port" > $net_out
+				send "OKCONNECT:$cur_user:$user_ip:$user_port"
 			fi
 		done
 
@@ -151,13 +195,13 @@ main()
 	elif [[ "$mode" = "reception" ]] && [ "$session_valid" -eq "1" ]; then
 
 		# Connect to peer listener
-		start_client $peer_ip $peer_port $net_out cli_pid
-		if [ "$cli_pid" -eq "-1" ]; then
+		start_client $peer_ip $peer_port $net_out
+		if [ "$cli_pid" = "-1" ]; then
 			echo "** Could not start data client" > $loc_in
 			session_valid=0
 		else
 			# Send OKCONNECT to peer
-			echo "OKCONNECT:$cur_user:$user_ip:$user_port" > $net_out
+			send "OKCONNECT:$cur_user:$user_ip:$user_port"
 
 			# Wait for peer reply on listener
 			connected=0
@@ -191,7 +235,7 @@ main()
 					break
 				fi
 				echo "[$cur_user] $user_line" > $loc_in
-				echo "$user_line" > $net_out
+				send "$user_line"
 				user_line=""
 			fi
 
@@ -207,10 +251,7 @@ main()
 		done
 	fi
 
-	# Terminate background running socat's
-	kill -15 $srv_pid
-	kill -15 $cli_pid
-
+	cleanup
 }
 
 
