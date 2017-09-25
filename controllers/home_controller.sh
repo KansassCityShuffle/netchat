@@ -17,9 +17,11 @@ read_from_room()
     read input < $in
     case "$input" in
       "discover")
-                echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast
+                # echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast
+                echo '' > "$out"
                 ;;
       "list")
+                echo '' > "$out"
                 ;;
       "infos")
                 if [[ -p "$out" ]]; then
@@ -40,38 +42,38 @@ read_from_room()
                 ;;
     esac
   done
-  # echo "Out / In pipe are broken. Closing Screen home session." > $logfile
-  # screen -S home -X quit
 }
 
 read_from_network()
 {
   while [ -p $net_in ]; do
-    read input < $net_in
-    case "$input" in
-      "discover")
-                echo "$disco" | socat - udp-sendto:"$bcast_addr":24000,broadcast
-                ;;
-      "list")
-                ;;
-      "infos")
-                if [[ -p "$out" ]]; then
-                  echo -e " Username : ${username} \nUser addr : ${user_addr} \nBcast addr : ${bcast_addr}\nPorts range : ${ports}" > "$out"
-                else
-                  echo "[\"infos\" command] out pipe (named in) is break;broken." > $logfile
-                  exit 1
-                fi
-                ;;
-      "connect")
-                ;;
-      "exit")
-                if [[ -p "$out" ]]; then
-                  echo "exit" > "$out"
-                  rm -f "$in"
-                  break
-                fi
-                ;;
-    esac
+
+    read net_input < $net_in
+    echo "$net_input" > $logfile
+
+    username_re="[[:alnum:]]{1,10}"
+    addr_re="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"
+    disco_re="^(DISCO{1}):($username_re):($addr_re)$"
+    unidisco_re="^(UDISCO{1}):($username_re):($addr_re)$"
+
+    if [[ "$net_input" =~ $disco_re ]]; then
+      echo -e "Discovery msg received" > "$out"
+      echo -e ${BASH_REMATCH[1]} > "$out"
+      echo -e ${BASH_REMATCH[2]} > "$out"
+      echo -e ${BASH_REMATCH[3]} > "$out"
+      if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
+        # echo "$unidisco" | socat - udp-sendto:${BASH_REMATCH[3]}:24000,unicast
+        echo -e "Discovery message received from other user"
+      fi
+    elif [[ "$net_input" =~ $unidisco_re ]]; then
+      echo -e "Unicast discovery msg received" > "$out"
+      echo -e ${BASH_REMATCH[1]} > "$out"
+      echo -e ${BASH_REMATCH[2]} > "$out"
+      echo -e ${BASH_REMATCH[3]} > "$out"
+    else
+      echo "Other message received $net_input" > "$out"
+    fi
+
   done
 }
 
@@ -99,17 +101,18 @@ main()
   disco="DISCO:${username}:${user_addr}"
   unidisco="UDISCO:${username}:${user_addr}"
 
-  # Listen for a while
+  # Listen for ever
   socat -u udp-recv:24000,reuseaddr PIPE:"$net_in" &
   listener_pid=$!
 
-  # Discover
+  # Auto discover
   echo "$disco" | socat - udp-sendto:${bcast_addr}:24000,broadcast
 
   # Do job until pipes are broken
-  # read_from_network
+  read_from_network &
   read_from_room
 }
 
 main $@
+kill -15 $listener_pid
 exit 0
