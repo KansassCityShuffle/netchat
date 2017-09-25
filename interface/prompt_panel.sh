@@ -18,8 +18,8 @@ main()
 		clear
 		echo -ne " > "
 		read cmd
-		echo "$cmd" > "$out_pipe"
-		if [[ "$cmd" = "exit" ]]; then
+		echo -e "$cmd" > "$out_pipe"
+		if [[ "$cmd" = "exit" ]]; then
 			break
 		fi
 	done

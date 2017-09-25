@@ -93,11 +93,14 @@ main()
 
 	if [ -d  "${netchat_dir}/log" ]; then rm -Rf "${netchat_dir}/log"; fi
 	mkdir "${netchat_dir}/log"
+	logfile="${netchat_dir}/log/netchat.log"
 
 	# start interface and home "controller"
 	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" &
+	home_pid=$!
 	./interface/interface.sh "$username" "home"
 }
 
 main $@
+kill -15 $home_pid 2>>"$logfile"
 exit 0
