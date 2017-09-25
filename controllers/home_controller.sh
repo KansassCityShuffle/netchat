@@ -57,18 +57,21 @@ read_from_network()
     unidisco_re="^(UDISCO{1}):($username_re):($addr_re)$"
 
     if [[ "$net_input" =~ $disco_re ]]; then
+      echo -e "Discovery msg received" > "$out"
       echo -e ${BASH_REMATCH[1]} > "$out"
       echo -e ${BASH_REMATCH[2]} > "$out"
       echo -e ${BASH_REMATCH[3]} > "$out"
-      # if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
+      if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
         # echo "$unidisco" | socat - udp-sendto:${BASH_REMATCH[3]}:24000,unicast
-      # fi
+        echo -e "Discovery message received from other user"
+      fi
     elif [[ "$net_input" =~ $unidisco_re ]]; then
+      echo -e "Unicast discovery msg received" > "$out"
       echo -e ${BASH_REMATCH[1]} > "$out"
       echo -e ${BASH_REMATCH[2]} > "$out"
       echo -e ${BASH_REMATCH[3]} > "$out"
     else
-      echo "not matched $net_input" > "$out"
+      echo "Other message received $net_input" > "$out"
     fi
 
   done
@@ -102,8 +105,8 @@ main()
   socat -u udp-recv:24000,reuseaddr PIPE:"$net_in" &
   listener_pid=$!
 
-  # Discover
-   echo "$disco" | socat - udp-sendto:${bcast_addr}:24000,broadcast
+  # Auto discover
+  echo "$disco" | socat - udp-sendto:${bcast_addr}:24000,broadcast
 
   # Do job until pipes are broken
   read_from_network &
