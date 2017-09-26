@@ -88,8 +88,8 @@ main()
 	mkdir -p "${netchat_dir}/data/${username}/home"
 	mkfifo "${netchat_dir}/data/${username}/home/in"
 	mkfifo "${netchat_dir}/data/${username}/home/out"
-  mkfifo "${netchat_dir}/data/${username}/home/net_in"
-  mkfifo "${netchat_dir}/data/${username}/home/net_out"
+	mkfifo "${netchat_dir}/data/${username}/home/net_in"
+	mkfifo "${netchat_dir}/data/${username}/home/net_out"
 
 	if [ -d  "${netchat_dir}/log" ]; then rm -Rf "${netchat_dir}/log"; fi
 	mkdir "${netchat_dir}/log"
@@ -98,6 +98,14 @@ main()
 	# start interface and home "controller"
 	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" &
 	home_pid=$!
+
+	# Keep current session on filesystem
+	session_folder="data/$username/session_infos"
+	mkdir -p $session_folder
+	echo "home" > "${session_folder}/current"
+	echo "home" > "${session_folder}/sessions_list"
+
+	# Start interface on "home" session
 	./interface/interface.sh "$username" "home"
 }
 

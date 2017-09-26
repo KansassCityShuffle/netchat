@@ -16,6 +16,7 @@ main()
 	export SC_USER=$user
 	export SC_CHANNEL=$channel
 
+	# use rlwrap and completion if available
 	if hash rlwrap 2>/dev/null; then
         screen -S $channel -c interface/screen_rl.cfg
     else
