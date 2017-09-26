@@ -40,8 +40,7 @@ handle_error()
 # $2 known_hosts
 is_known_in()
 {
-  local entry match ="$1"
-  shift
+  local match="$1"; shift
   for entry; do
     [[ "$entry" == "$match" ]] && return 0;
   done
@@ -54,9 +53,9 @@ set_discovered_user()
 {
   new_host="$1:$2"
   if [ ${#known_hosts[@]} -eq 0 ]; then
-    known_hosts+="$new_host"
+    known_hosts+=("$new_host")
     return 0
-  elif ! is_known_in "$new_host" "$known_hosts" ; then
+  elif ! is_known_in "$new_host" "${known_hosts[@]}" ; then
     known_hosts+=("$new_host")
     return 0
   fi
@@ -185,6 +184,7 @@ read_from_network()
       if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
         if set_discovered_user ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}; then
           echo -e "Host added" > "$out"
+          echo -e ${known_hosts[@]} > "$out"
           echo "$unidisco" | socat -d -d -d - udp-sendto:${BASH_REMATCH[3]}:24000,unicast >>"$logfile" 2>&1
         else
           echo -e "Host not added" > "$out"
@@ -242,7 +242,7 @@ main()
   connect="CONNECT:${username}:${user_addr}"
 
   # Build empty users list
-  known_hosts=()
+  known_hosts=("test-host")
 
   # Listen for ever
   socat -d -d -d -u udp-recv:24000,reuseaddr PIPE:"$net_in" >>"$logfile" 2>&1 &
