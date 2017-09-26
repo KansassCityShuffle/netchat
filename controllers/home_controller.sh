@@ -136,6 +136,7 @@ Ports range : ${ports}" > "$out"
                   conn_request="$connect:$next_port"
                   remote_host=${known_hosts[$conn_no - 1]}
                   remote_ip=$(echo $remote_host | cut -d ":" -f 2)
+                  ./p2p_controller.sh
                   echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
                 fi
                 ;;
@@ -207,6 +208,7 @@ read_from_network()
     elif [[ "$net_input" =~ $connect_re ]]; then
       echo -e "[CONNECT RECEIVED]" > "$out"
       echo -e ${BASH_REMATCH[0]} > "$out"
+      ./p2p_controller
     else
       echo "Other message received $net_input" > "$out"
     fi
