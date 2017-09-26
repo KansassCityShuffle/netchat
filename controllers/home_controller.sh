@@ -71,9 +71,9 @@ get_available_port()
   local port=0
   for port in $(seq $min_port $max_port); do
     echo -ne "\035" | telnet 127.0.0.1 $port > /dev/null 2>&1;
-    [ $? -eq 1 ] && echo "unused $port" > "$logfile" && break;
+    [ $? -eq 1 ] && echo "unused $port" >> "$logfile" && break;
   done
-  return $port
+  echo $port
 }
 
 read_from_room()
@@ -125,16 +125,18 @@ Ports range : ${ports}" > "$out"
                 ;;
       "connect")
                 echo -e "[CONNECT]" > "$out"
+                readarray known_hosts < "$known_hosts_file"
                 if (( $conn_no <= 0 || $conn_no > ${#known_hosts[@]} )); then
                     echo -e "Please type \"connect\" followed by the user ID you want to chat with." > "$out"
                     echo -e "Type \"list\" to see users ID, name and IP." > "$out"
                 else
                   local next_port conn_request remote_host host_infos
+                  next_port=$min_port
                   next_port=$( get_available_port $min_port $max_port )
                   conn_request="$connect:$next_port"
                   remote_host=${known_hosts[$conn_no - 1]}
-                  host_infos=$(echo $remote_host | tr ":" "\n")
-                  echo "$conn_request" | socat -d -d -d - udp-sendto:${host_infos[1]}:24000,unicast >>"$logfile" 2>&1
+                  remote_ip=$(echo $remote_host | cut -d ":" -f 2)
+                  echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
                 fi
                 ;;
       "help")
@@ -177,7 +179,7 @@ read_from_network()
       handle_error ${LINENO} ${OUT_ERR} 2
     fi
 
-    read net_input < $net_in 2>>"$logfile"
+    read net_input <> $net_in 2>>"$logfile"
 
     if [[ "$net_input" =~ $disco_re ]]; then
       echo -e "[DISCO RECEIVED]" > "$out"
@@ -187,7 +189,7 @@ read_from_network()
       if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
         if set_discovered_user ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}; then
           echo -e "Host added" > "$out"
-          echo "$unidisco" | socat -d -d -d - udp-sendto:${BASH_REMATCH[3]}:24000,unicast >>"$logfile" 2>&1
+          echo "$unidisco" | socat -d -d -d - udp-sendto:${BASH_REMATCH[3]}:24000 >>"$logfile" 2>&1
         else
           echo -e "Host not added" > "$out"
         fi
@@ -246,6 +248,7 @@ main()
   # Make known hosts directory
   known_hosts_file="${netchat_dir}/data/${username}/session_infos/known_hosts"
   touch "$known_hosts_file"
+  echo "operator:10.2.240.69" > "$known_hosts_file"
 
   # Listen for ever
   socat -d -d -d -u udp-recv:24000,reuseaddr PIPE:"$net_in" >>"$logfile" 2>&1 &
