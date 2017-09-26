@@ -2,8 +2,9 @@
 
 # Controller for p2p conversations
 #
-# Usage: p2p_controller.sh <username> <channel> <user_ip> <port_range> <mode> <peer_ip>
-#                          [<peer_port>]
+# Usage: p2p_controller.sh <user_name> <peer_name> <user_ip> <port> <mode>
+#                          <peer_ip> [<peer_port>]
+#
 #        mode can be either "emission" or "reception"
 #        "peer_port" is used only in reception mode
 #
@@ -66,7 +67,7 @@ function usage()
 }
 
 
-# Cleanup (for trap)
+# Cleanup (for real trap)
 function cleanup()
 {
 	slog "Cleaning up on exit"
@@ -108,7 +109,7 @@ function main()
 	srv_pid=-1
 	cli_pid=-1
 	user_ip=$3
-	user_port_range=$4
+	user_port=$4
 	mode=$5
 	peer_ip=$6
 	session_valid=1
@@ -130,34 +131,16 @@ function main()
 	mkfifo $net_out 2>&1 | logp $logfile
 
 
-	# Search for a free port in user range
-	user_port=$(util/find_port.sh $user_port_range)
-
-	if [ $user_port -eq -1 ]; then
-		echo "** No free port in range $user_port_range, aborting" > $loc_in
-		slog "No free port in range $user_port_range !"
+	# Start the listening server
+	start_server $user_port $net_in
+	if [ "$srv_pid" -eq "-1" ]; then
 		session_valid=0
-	else
-		echo "** Using port $user_port for data" > $loc_in
-
-		echo "** Connecting..." > $loc_in
-
-		# Start the listening server
-		start_server $user_port $net_in
-		if [ "$srv_pid" -eq "-1" ]; then
-			session_valid=0
-			echo "** Could not start data server" > $loc_in
-		fi
-
+		echo "** Could not start data server" > $loc_in
 	fi
 
 
 	# We initialized the session
 	if [[ "$mode" = "emission" ]] && [ "$session_valid" -eq "1" ]; then
-		# Send "connect" packet to peer
-		udp_unicast_logfile="log/p2p_socat_udp_${cur_user}_${peer_name}.log"
-		echo "CONNECT:$cur_user:$user_ip:$user_port" | socat -d -d -d - udp-sendto:$peer_ip:24000 > $udp_unicast_logfile 2>&1
-		slog "Sent packet: CONNECT:$cur_user:$user_ip:$user_port"
 		# Wait for answer packet
 		connected=0
 		while [ $connected -eq 0 ];	do
