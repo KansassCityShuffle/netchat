@@ -15,7 +15,14 @@ main()
 	# Export variables to "traverse" screen (cannot call screen with arguments)
 	export SC_USER=$user
 	export SC_CHANNEL=$channel
-	screen -S $channel -c interface/screen.cfg
+
+	# use rlwrap and completion if available
+	if hash rlwrap 2>/dev/null; then
+        screen -S $channel -c interface/screen_rl.cfg
+    else
+        screen -S $channel -c interface/screen.cfg
+    fi
+
 
 	logfile="$( pwd )/log/interface_${channel}.log"
 }

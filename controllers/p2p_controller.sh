@@ -244,9 +244,11 @@ function main()
 			if [[ ! -z "${peer_line// }" ]]; then
 				echo "[$peer_name] $peer_line" > $loc_in
 				peer_line=""
+
+				# TODO: Handle some commands like "quit"
+
 			fi
 
-			# TODO: Handle some commands like "quit"
 
 		done
 	fi
