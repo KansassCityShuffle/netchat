@@ -1,0 +1,6 @@
+discover
+list
+infos
+connect
+help
+exit
