@@ -6,6 +6,7 @@
 main()
 {
 	direction=$1
+
 }
 
 main $@
