@@ -51,12 +51,14 @@ is_known_in()
 # $2 ip
 set_discovered_user()
 {
+  readarray known_hosts < "$known_hosts_file"
   new_host="$1:$2"
   if [ ${#known_hosts[@]} -eq 0 ]; then
-    known_hosts+=("$new_host")
+    #known_hosts+=("$new_host")
+    echo "$new_host" > "$known_hosts_file"
     return 0
   elif ! is_known_in "$new_host" "${known_hosts[@]}" ; then
-    known_hosts+=("$new_host")
+    echo "$new_host" > "$known_hosts_file"
     return 0
   fi
   return 1
@@ -95,6 +97,7 @@ read_from_room()
       "list")
                 if [[ -p "$out" ]]; then
                   echo -e "[LIST]" > "$out"
+                  readarray known_hosts < "$known_hosts_file"
                   if [ ${#known_hosts[@]} -eq 0 ]; then
                     echo -e "Hosts list is empty" > "$out"
                     echo -e '' > "$out"
@@ -184,7 +187,6 @@ read_from_network()
       if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
         if set_discovered_user ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}; then
           echo -e "Host added" > "$out"
-          echo -e ${known_hosts[@]} > "$out"
           echo "$unidisco" | socat -d -d -d - udp-sendto:${BASH_REMATCH[3]}:24000,unicast >>"$logfile" 2>&1
         else
           echo -e "Host not added" > "$out"
@@ -241,8 +243,9 @@ main()
   unidisco="UDISCO:${username}:${user_addr}"
   connect="CONNECT:${username}:${user_addr}"
 
-  # Build empty users list
-  known_hosts=("test-host")
+  # Make known hosts directory
+  known_hosts_file="${netchat_dir}/data/${username}/session_infos/known_hosts"
+  touch "$known_hosts_file"
 
   # Listen for ever
   socat -d -d -d -u udp-recv:24000,reuseaddr PIPE:"$net_in" >>"$logfile" 2>&1 &
