@@ -268,4 +268,5 @@ echo "Terminating process..." >>"$logfile"
 kill -15 $listener_pid 2>>"$logfile"
 kill -15 $reader_pid 2>>"$logfile"
 echo "Process terminated" >>"$logfile"
+rm -f "data/$username/session_infos/current"
 exit 0
