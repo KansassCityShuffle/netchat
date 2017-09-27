@@ -136,7 +136,7 @@ Ports range : ${ports}" > "$out"
 						last_session=$(cat data/$username/session_infos/current)
 						echo "$remote_host" >> "data/$username/session_infos/sessions_list"
 						echo "$remote_host" > "data/$username/session_infos/current"
-						./controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "emission" "$remote_ip" &
+						${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "emission" "$remote_ip" &
 						controller_id=$!
 						echo "sender_c $remote_host $controller_id" >> "$pids_file"
 						echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
@@ -297,20 +297,20 @@ main()
 
 cleanup()
 {
-	readarray process_list < "$pids_file"
-	for process in "${process_list[@]}"; do
-		desc=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 1 )
-		r_host=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 2 )
-		pid=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 3 )
-		echo -ne "Killing ${desc} process which communicate with ${r_host}, with ${pid} PID." >>"$logfile"
-		if ps -p "$pid" >/dev/null; then
-			kill -15 "$pid" >>"$logfile" 2>&1
-			echo -e " [DONE]" >>"$logfile"
-		else
-			echo -e " [PROC ALDREADY KILLED]" >>"$logfile"
-		fi
-	done
-	rm -f "data/$username/session_infos/current"
+  readarray process_list < "$pids_file"
+  for process in "${process_list[@]}"; do
+      desc=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 1 )
+      r_host=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 2 )
+      child_pid=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 3 )
+      echo -ne "Killing ${desc} process which communicates with ${r_host}, with ${child_pid} PID." >>"$logfile"
+      if ps -p "$child_pid" >/dev/null; then
+        kill -15 "$child_pid" >>"$logfile" 2>&1
+        echo -e " [DONE]" >>"$logfile"
+      else
+        echo -e " [PROC ALDREADY KILLED]" >>"$logfile"
+      fi
+  done
+  rm -f "data/$username/session_infos/current"
 }
 
 main $@
