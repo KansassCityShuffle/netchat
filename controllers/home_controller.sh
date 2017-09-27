@@ -133,7 +133,7 @@ Ports range : ${ports}" > "$out"
                   remote_infos=${known_hosts[$conn_no - 1]}
                   remote_host=$(echo $remote_infos | cut -d ":" -f 1)
                   remote_ip=$(echo $remote_infos | cut -d ":" -f 2)
-                  ./controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "emission" "$remote_ip" &
+                  ${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "emission" "$remote_ip" &
                   controller_id=$!
                   echo "sender_c $remote_host $controller_id" >> "$pids_file"
                   echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
@@ -292,10 +292,10 @@ cleanup()
   for process in "${process_list[@]}"; do
       desc=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 1 )
       r_host=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 2 )
-      pid=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 3 )
-      echo -ne "Killing ${desc} process which communicate with ${r_host}, with ${pid} PID." >>"$logfile"
-      if ps -p "$pid"; then
-        kill -15 "$pid" >>"$logfile" 2>&1 
+      child_pid=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 3 )
+      echo -ne "Killing ${desc} process which communicates with ${r_host}, with ${child_pid} PID." >>"$logfile"
+      if ps -p "$child_pid"; then
+        kill -15 "$child_pid" >>"$logfile" 2>&1
         echo -e " [DONE]" >>"$logfile"
       else
         echo -e " [PROC ALDREADY KILLED]" >>"$logfile"
