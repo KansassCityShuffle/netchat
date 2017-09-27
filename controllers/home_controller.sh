@@ -4,8 +4,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-logfile="$( pwd )/log/home_controller.log"
-touch "$logfile"
+trap cleanup EXIT
 
 usage()
 {
@@ -58,7 +57,7 @@ set_discovered_user()
     echo "$new_host" > "$known_hosts_file"
     return 0
   elif ! is_known_in "$new_host" "${known_hosts[@]}" ; then
-    echo "$new_host" > "$known_hosts_file"
+    echo "$new_host" >> "$known_hosts_file"
     return 0
   fi
   return 1
@@ -100,13 +99,11 @@ read_from_room()
                   readarray known_hosts < "$known_hosts_file"
                   if [ ${#known_hosts[@]} -eq 0 ]; then
                     echo -e "Hosts list is empty" > "$out"
-                    echo -e '' > "$out"
                   else
                     i=1
                     for host in ${known_hosts[@]}; do
                       echo -e "$i ) $host" > "$out"
                     done
-                    echo -e '' > "$out"
                   fi
                 else
                   handle_error ${LINENO} ${OUT_ERR} 2
@@ -130,7 +127,7 @@ Ports range : ${ports}" > "$out"
                     echo -e "Please type \"connect\" followed by the user ID you want to chat with." > "$out"
                     echo -e "Type \"list\" to see users ID, name and IP." > "$out"
                 else
-                  local next_port conn_request remote_infos remote_host remote_ip
+                  local next_port conn_request remote_infos remote_host remote_ip controller_id
                   next_port=$min_port
                   next_port=$( get_available_port $min_port $max_port )
                   conn_request="$connect:$next_port"
@@ -138,6 +135,8 @@ Ports range : ${ports}" > "$out"
                   remote_host=$(echo $remote_infos | cut -d ":" -f 1)
                   remote_ip=$(echo $remote_infos | cut -d ":" -f 2)
                   ./controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "emission" "$remote_ip" &
+                  controller_id=$!
+                  echo "sender_c $remote_host $controller_id" >> "$pids_file"
                   echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
                 fi
                 ;;
@@ -208,13 +207,15 @@ read_from_network()
       fi
     elif [[ "$net_input" =~ $connect_re ]]; then
       echo -e "[CONNECT RECEIVED]" > "$out"
-      local next_port remote_infos remote_host remote_ip
+      local next_port remote_infos remote_host remote_ip controller_id
       next_port=$min_port
       next_port=$( get_available_port $min_port $max_port )
       remote_infos="${BASH_REMATCH[0]}"
       remote_host=$( echo "$remote_infos" | cut -d ":" -f 2 )
       remote_ip=$( echo "$remote_infos" | cut -d ":" -f 3 )
       .${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
+      controller_id=$!
+      echo "listener_c $remote_host $controller_id" >> "$pids_file"
     else
       echo "Other message received $net_input" > "$out"
     fi
@@ -225,6 +226,11 @@ read_from_network()
 
 main()
 {
+  # Make logfile
+  logfile="$( pwd )/log/home_controller.log"
+  touch "$logfile"
+  echo "Starting home controller" > "$logfile"
+
   # Retreive script parameters
   if [[ $# != 4 ]]; then
     usage
@@ -253,14 +259,18 @@ main()
   unidisco="UDISCO:${username}:${user_addr}"
   connect="CONNECT:${username}:${user_addr}"
 
-  # Make known hosts directory
+  # Make known hosts file
   known_hosts_file="${netchat_dir}/data/${username}/session_infos/known_hosts"
   touch "$known_hosts_file"
-  echo "operator:10.2.240.69" > "$known_hosts_file"
+
+  # Make process IDs file
+  pids_file="${netchat_dir}/data/${username}/session_infos/pids"
+  touch "$pids_file"
 
   # Listen for ever
   socat -d -d -d -u udp-recv:24000,reuseaddr PIPE:"$net_in" >>"$logfile" 2>&1 &
   listener_pid=$!
+  echo "listener \* $listener_pid" >> "$pids_file"
 
   # Auto discover
   echo "$disco" | socat -d -d -d - udp-sendto:${bcast_addr}:24000,broadcast >>"$logfile" 2>&1
@@ -268,13 +278,28 @@ main()
   # Do job until pipes are broken
   read_from_network &
   reader_pid=$!
+  echo "reader \* $reader_pid" >> "$pids_file"
   read_from_room
 }
 
+cleanup()
+{
+  readarray process_list < "$pids_file"
+  for process in "${process_list[@]}"; do
+      desc=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 1 )
+      r_host=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 2 )
+      pid=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 3 )
+      echo -ne "Killing ${desc} process which communicate with ${r_host}, with ${pid} PID." >>"$logfile"
+      if ps -p "$pid"; then
+        kill -15 "$pid" 2>>"$logfile";
+        echo -e " [DONE]" >>"$logfile"
+      else
+        echo -e " [PROC ALDREADY KILLED]" >>"$logfile"
+      fi
+  done
+  rm -f "data/$username/session_infos/current"
+  rm "data/${username}/session_infos/pids"
+}
+
 main $@
-echo "Terminating process..." >>"$logfile"
-kill -15 $listener_pid 2>>"$logfile"
-kill -15 $reader_pid 2>>"$logfile"
-echo "Process terminated" >>"$logfile"
-rm -f "data/$username/session_infos/current"
 exit 0
