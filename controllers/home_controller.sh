@@ -140,6 +140,7 @@ Ports range : ${ports}" > "$out"
 						controller_id=$!
 						echo "sender_c $remote_host $controller_id" >> "$pids_file"
 						echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
+						export SC_USER=${username}
 						screen -dmS "$remote_host" -c "interface/outer.cfg" bash -c "./interface/interface.sh $username $remote_host" > /dev/null
 						screen -d "$last_session"
 					fi
@@ -224,6 +225,7 @@ read_from_network()
 			${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" "$remote_port" &
 			controller_id=$!
 			echo "listener_c $remote_host $controller_id" >> "$pids_file"
+			export SC_USER=${username}
 			screen -dmS "$remote_host" -c "interface/outer.cfg" bash -c "./interface/interface.sh $username $remote_host" > /dev/null
 		screen -d "$last_session"
 		else
