@@ -206,15 +206,16 @@ read_from_network()
       fi
     elif [[ "$net_input" =~ $connect_re ]]; then
       echo -e "[CONNECT RECEIVED]" > "$out"
-      local next_port remote_infos remote_host remote_ip controller_id
+      local next_port remote_infos remote_host remote_ip remote_port controller_id
       next_port=$min_port
       next_port=$( get_available_port $min_port $max_port )
       remote_infos="${BASH_REMATCH[0]}"
       remote_host=$( echo "$remote_infos" | cut -d ":" -f 2 )
       remote_ip=$( echo "$remote_infos" | cut -d ":" -f 3 )
+	  remote_port=$( echo "$remote_infos" | cut -d ":" -f 4 )
       echo "$remote_host" >> "data/$username/session_infos/sessions_list"
       echo "$remote_host" > "data/$username/session_infos/current"
-      ${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
+      ${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" "$remote_port" &
       controller_id=$!
       echo "listener_c $remote_host $controller_id" >> "$pids_file"
       screen -dmS "$remote_host" -c "interface/outer.cfg" bash -c "./interface/interface.sh $username $remote_host" > /dev/null

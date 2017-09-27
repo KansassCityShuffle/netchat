@@ -62,8 +62,8 @@ function send()
 # Usage
 function usage()
 {
-	echo "Usage: p2p_controller.sh <username> <channel> <user_ip> <port_range>"
-	echo "                         <mode> <peer_ip> [<peer_port>]"
+	echo "Usage: p2p_controller.sh <user_name> <peer_name> <user_ip> <port> <mode>"
+	echo "                         <peer_ip> [<peer_port>]"
 }
 
 
