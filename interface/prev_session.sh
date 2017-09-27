@@ -69,11 +69,11 @@ function main()
 		nextIdx=$(($index-1))
 	fi
 
-	screen -d $current > /dev/null 2>&1
-
+	old_session=$current
 	current=${sessions[nextIdx]}
 	echo "$current" > $file_current
 	log "Current session is now $current"
+	screen -d $old_session 2>&1 | logp
 
 	exit 0
 }
