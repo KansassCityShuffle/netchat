@@ -84,7 +84,7 @@ main()
 	# prepare file system
 	netchat_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-	if [ -d "${netchat_dir}/data" ]; then rm -Rf "${netchat_dir}/data"; fi
+	if [ -d "${netchat_dir}/data/${username}" ]; then rm -Rf "${netchat_dir}/data/${username}"; fi
 	mkdir -p "${netchat_dir}/data/${username}/home"
 	mkfifo "${netchat_dir}/data/${username}/home/in"
 	mkfifo "${netchat_dir}/data/${username}/home/out"
