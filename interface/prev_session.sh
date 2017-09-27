@@ -35,12 +35,12 @@ function main()
 	file_current="data/$SC_USER/session_infos/current"
 	file_seslist="data/$SC_USER/session_infos/sessions_list"
 
-	if [ ! -f "$file_current" ]; then
+	if [ ! -f "$file_seslist" ]; then
 		log "Sessions list not found"
 		exit 1
 	fi
 
-	if [ ! -f "$file_seslist" ]; then
+	if [ ! -f "$file_current" ]; then
 		log "Current session not found"
 		exit 1
 	fi
