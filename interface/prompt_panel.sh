@@ -13,14 +13,13 @@ main()
 
 	logfile="$( pwd )/log/prompt_${cur_chan}.log"
 
+	clear
+	echo -ne " > "
 	while [ -p $out_pipe ]
 	do
-		clear
-		echo -ne " > "
-		read cmd
-		echo -e "$cmd" > "$out_pipe"
-		if [[ "$cmd" = "exit" ]]; then
-			break
+		read -t 0.5 cmd && clear && echo -ne " > "
+		if [ ! -z "$cmd" ]; then
+			echo -e "$cmd" > "$out_pipe"
 		fi
 	done
 }
