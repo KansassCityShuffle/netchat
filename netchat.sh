@@ -84,7 +84,7 @@ main()
 	# prepare file system
 	netchat_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-	if [ -d "${netchat_dir}/data" ]; then rm -Rf "${netchat_dir}/data"; fi
+	if [ -d "${netchat_dir}/data/${username}" ]; then rm -Rf "${netchat_dir}/data/${username}"; fi
 	mkdir -p "${netchat_dir}/data/${username}/home"
 	mkfifo "${netchat_dir}/data/${username}/home/in"
 	mkfifo "${netchat_dir}/data/${username}/home/out"
@@ -105,13 +105,14 @@ main()
 	mkdir -p $session_folder
 	echo "home" > "${session_folder}/current"
 	echo "home" > "${session_folder}/sessions_list"
+	export SC_USER=${username}
 
 	# Start interface on "home" session
-	screen -dmS "home" bash -c "./interface/interface.sh $username home"
+	screen -dmS "home" -c "interface/outer.cfg" bash -c "./interface/interface.sh $username home" > /dev/null
 
 	while [ -f "$session_folder/current" ]; do
 		current=$(cat $session_folder/current)
-		screen -r "$current"
+		screen -A -q -r "$current" > /dev/null 2>&1
 	done
 }
 

@@ -213,9 +213,17 @@ read_from_network()
       remote_infos="${BASH_REMATCH[0]}"
       remote_host=$( echo "$remote_infos" | cut -d ":" -f 2 )
       remote_ip=$( echo "$remote_infos" | cut -d ":" -f 3 )
+<<<<<<< HEAD
       .${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
       controller_id=$!
       echo "listener_c $remote_host $controller_id" >> "$pids_file"
+=======
+	  echo "$remote_host" >> "data/$username/session_infos/sessions_list"
+	  echo "$remote_host" > "data/$username/session_infos/current"
+      ${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
+	  screen -dmS "$remote_host" -c "interface/outer.cfg" bash -c "./interface/interface.sh $username $remote_host" > /dev/null
+
+>>>>>>> 7e7befd33d0afa5e4ca842399c0b3b860738e221
     else
       echo "Other message received $net_input" > "$out"
     fi
@@ -265,6 +273,7 @@ main()
 
   # Make process IDs file
   pids_file="${netchat_dir}/data/${username}/session_infos/pids"
+  if [ -f "$pids_file" ]; then rm -f "data/${username}/session_infos/pids"; fi
   touch "$pids_file"
 
   # Listen for ever
@@ -298,7 +307,6 @@ cleanup()
       fi
   done
   rm -f "data/$username/session_infos/current"
-  rm "data/${username}/session_infos/pids"
 }
 
 main $@
