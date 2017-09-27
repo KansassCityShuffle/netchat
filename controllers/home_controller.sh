@@ -39,9 +39,9 @@ handle_error()
 # $2 known_hosts
 is_known_in()
 {
-  local match="$1"; shift
+  local entry match="$1"; shift
   for entry; do
-    [[ "$entry" == "$match" ]] && return 0;
+    [[ $entry == $match ]] && return 0;
   done
   return 1
 }
@@ -53,10 +53,9 @@ set_discovered_user()
   readarray known_hosts < "$known_hosts_file"
   new_host="$1:$2"
   if [ ${#known_hosts[@]} -eq 0 ]; then
-    #known_hosts+=("$new_host")
     echo "$new_host" > "$known_hosts_file"
     return 0
-  elif ! is_known_in "$new_host" "${known_hosts[@]}" ; then
+  elif ! is_known_in "$new_host" ${known_hosts[@]} ; then
     echo "$new_host" >> "$known_hosts_file"
     return 0
   fi
