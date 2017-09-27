@@ -106,7 +106,12 @@ main()
 	echo "home" > "${session_folder}/sessions_list"
 
 	# Start interface on "home" session
-	./interface/interface.sh "$username" "home"
+	screen -dmS "home" bash -c "./interface/interface.sh $username home"
+
+	while [ -f "$session_folder/current" ]; do
+		current=$(cat $session_folder/current)
+		screen -r "$current"
+	done
 }
 
 main $@

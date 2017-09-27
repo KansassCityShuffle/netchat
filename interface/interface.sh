@@ -18,9 +18,9 @@ main()
 
 	# use rlwrap and completion if available
 	if hash rlwrap 2>/dev/null; then
-        screen -S $channel -c interface/screen_rl.cfg
+        screen -c interface/screen_rl.cfg -S "inner_$channel"
     else
-        screen -S $channel -c interface/screen.cfg
+        screen -c interface/screen.cfg -S "inner_$channel"
     fi
 
 
