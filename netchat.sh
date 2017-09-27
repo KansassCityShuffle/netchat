@@ -97,7 +97,7 @@ main()
 	touch "$logfile"
 
 	# start interface and home "controller"
-	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" &
+	./controllers/home_controller.sh "$username" "$user_addr" "$bcast_addr" "$ports" >/dev/null 2>&1 &
 	home_pid=$!
 
 	# Keep current session on filesystem
