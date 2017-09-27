@@ -214,7 +214,9 @@ read_from_network()
       remote_infos="${BASH_REMATCH[0]}"
       remote_host=$( echo "$remote_infos" | cut -d ":" -f 2 )
       remote_ip=$( echo "$remote_infos" | cut -d ":" -f 3 )
-      .${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
+      ${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
+	  screen -dmS "$remote_host" -c "interface/outer.cfg" bash -c "./interface/interface.sh $username $remote_host" > /dev/null
+
     else
       echo "Other message received $net_input" > "$out"
     fi
