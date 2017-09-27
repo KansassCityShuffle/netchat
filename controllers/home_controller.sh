@@ -294,7 +294,7 @@ cleanup()
       pid=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 3 )
       echo -ne "Killing ${desc} process which communicate with ${r_host}, with ${pid} PID." >>"$logfile"
       if ps -p "$pid"; then
-        kill -15 "$pid" 2>>"$logfile";
+        kill -15 "$pid" >>"$logfile" 2>&1 
         echo -e " [DONE]" >>"$logfile"
       else
         echo -e " [PROC ALDREADY KILLED]" >>"$logfile"
