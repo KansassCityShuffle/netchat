@@ -130,13 +130,14 @@ Ports range : ${ports}" > "$out"
                     echo -e "Please type \"connect\" followed by the user ID you want to chat with." > "$out"
                     echo -e "Type \"list\" to see users ID, name and IP." > "$out"
                 else
-                  local next_port conn_request remote_host host_infos
+                  local next_port conn_request remote_infos remote_host remote_ip
                   next_port=$min_port
                   next_port=$( get_available_port $min_port $max_port )
                   conn_request="$connect:$next_port"
-                  remote_host=${known_hosts[$conn_no - 1]}
-                  remote_ip=$(echo $remote_host | cut -d ":" -f 2)
-                  ./p2p_controller.sh
+                  remote_infos=${known_hosts[$conn_no - 1]}
+                  remote_host=$(echo $remote_infos | cut -d ":" -f 1)
+                  remote_ip=$(echo $remote_infos | cut -d ":" -f 2)
+                  ./controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "emission" "$remote_ip" &
                   echo "$conn_request" | socat -d -d -d - udp-sendto:"$remote_ip":24000 >>"$logfile" 2>&1
                 fi
                 ;;
@@ -207,8 +208,13 @@ read_from_network()
       fi
     elif [[ "$net_input" =~ $connect_re ]]; then
       echo -e "[CONNECT RECEIVED]" > "$out"
-      echo -e ${BASH_REMATCH[0]} > "$out"
-      ./p2p_controller
+      local next_port remote_infos remote_host remote_ip
+      next_port=$min_port
+      next_port=$( get_available_port $min_port $max_port )
+      remote_infos="${BASH_REMATCH[0]}"
+      remote_host=$( echo "$remote_infos" | cut -d ":" -f 2 )
+      remote_ip=$( echo "$remote_infos" | cut -d ":" -f 3 )
+      .${netchat_dir}/controllers/p2p_controller.sh "$username" "$remote_host" "$user_addr" "$next_port" "reception" "$remote_ip" &
     else
       echo "Other message received $net_input" > "$out"
     fi
@@ -269,5 +275,4 @@ main $@
 echo "Terminating process..." >>"$logfile"
 kill -15 $listener_pid 2>>"$logfile"
 kill -15 $reader_pid 2>>"$logfile"
-echo "Process terminated" >>"$logfile"
 exit 0
