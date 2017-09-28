@@ -172,7 +172,7 @@ Ports range : ${ports}" > "$out"
 read_from_network()
 {
 	local username_re addr_re port_re disco_re unidisco_re connect_re
-	username_re="[[:alnum:]]{1,10}"
+	username_re="[[:alnum:]]{1,20}"
 	addr_re="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"
 	port_re="[[:digit:]]{1,5}"
 	disco_re="^(DISCO{1}):($username_re):($addr_re)$"

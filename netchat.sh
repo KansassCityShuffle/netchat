@@ -24,7 +24,7 @@ are_ports()
 
 is_username()
 {
-	local re="^[a-zA-Z]{1,10}$"
+	local re="^[[:alnum:]]{1,20}$"
 	if [[ "$1" =~ $re ]]; then
 		return 0
 	else
