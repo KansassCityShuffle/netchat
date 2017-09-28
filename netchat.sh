@@ -1,16 +1,66 @@
 #!/usr/bin/env bash
+#=================================================================
+# HEADER
+#=================================================================
+#%
+#% SYNOPSIS
+#+	${SCRIPT_NAME} [-hv] [-p <MINPORT-MAXPORT>] [-u <USERNAME>]
+#%
+#% DESCRIPTION
+#%	Netchat provides decentralized chat features in local networks.
+#%	It relies on Socat utility and Screen for multiple shells
+#%	management.
+#%
+#% OPTIONS
+#%	-h                     Print this help.
+#%	-p <MINPORT-MAXPORT>   Set a range of ports available for TCP
+#%	                       sockets.
+#%	                       The default value is 24001-30000.
+#%	-u <USERNAME>          Set the name people in Netchat will see
+#%	                       when you are connected.
+#%	                       The default value is your session login.
+#%	-v                     Print script informations
+#%
+#% EXAMPLES
+#%	${SCRIPT_NAME} -p 25500-26000 -u JohnSmith51
+#%
+#==================================================================
+#- IMPLEMENTATION
+#-	version		${SCRIPT_NAME} 0.0.1
+#-	authors		Alban CHAZOT, Lisa AUBRY
+#-	copyright	Copyright (c)
+#-	license		GNU General Public License
+#- 	Git url		https://github.com/KansassCityShuffle/netchat
+#-
+#==================================================================
+# HISTORY
+#		28/09/2017 : lisa : Adding scripts headers
+#
+#==================================================================
+# DEBUG OPTIONS
+#		set -n # Uncomment to check your syntax (without execution)
+#		set -x # Uncomment to debug this script
+#
+#==================================================================
+# END_OF_HEADER
+#==================================================================
 
 set -o errexit
 set -o pipefail
 set -o nounset
 
-# TODO : move this in config file
-default_ports="24001-30000"
+#==============
+# SET VARIABLES
+#==============
+SCRIPT_OPTS=":hvu:p:"
+SCRIPT_HEADSIZE=$(head -200 ${0} | grep -n "^# END_OF_HEADER" | cut -f1 -d:)
+SCRIPT_NAME="$(basename ${0})"
+DEFAULT_PORTS="24001-30000"
 
-usage()
-{
-	echo "Usage: $0 [-p <MINPORT-MAXPORT>] [-u <USERNAME>]"
-}
+#==============
+# USAGE FUNCT
+#==============
+source util/display_infos.sh
 
 are_ports()
 {
@@ -41,25 +91,39 @@ get_network_infos()
 
 get_options()
 {
-	while getopts ":p:u:" opt; do
+	while getopts "${SCRIPT_OPTS}" opt; do
 		case $opt in
 			p)
 				if are_ports "$OPTARG"; then
 					ports="$OPTARG"
+				else
+					usage
+					exit 1
 				fi
 				;;
 			u)
 				if is_username "$OPTARG"; then
 					username="$OPTARG"
+				else
+					usage
+					exit 1
 				fi
 				;;
+			h)
+				usagefull
+				exit 0
+				;;
+			v)
+				infos
+				exit 0
+				;;
 			:)
-				echo "Error: -$OPTARG: requires an argument"
+				echo "ERROR: -$OPTARG: requires an argument"
 				usage
 				exit 1
 				;;
 			?)
-				echo "Error: -$OPTARG: unknown option"
+				echo "ERROR: -$OPTARG: unknown option"
 				usage
 				exit 1
 				;;
@@ -76,8 +140,8 @@ main()
 
 	# retrieve user informations
 	if (( $# > 0 )); then get_options $@; fi
-	if [ "$ports" = 0 ]; then ports="$default_ports"; fi
-	if [ "$username" = 0 ]; then username="$USER"; fi
+	if [ "$ports" = 0 ]; then ports="${DEFAULT_PORTS}"; fi
+	if [ "$username" = 0 ]; then username="${USER}"; fi
 
 	get_network_infos
 
