@@ -297,6 +297,14 @@ main()
 
 cleanup()
 {
+	# Simulate "exit" command in running sessions' prompt
+	for dir in $( find ${netchat_dir}/data/${username}/* ! -path '*session_infos*' ! -path '*home*' -type d ); do
+		if [[ -p ${dir}/out ]]; then
+			echo -ne "exit" > "$out"
+		fi
+	done
+
+	# Kill backgroung process
   readarray process_list < "$pids_file"
   for process in "${process_list[@]}"; do
       desc=$( echo "$process" | tr -s ' ' | cut -d ' ' -f 1 )
