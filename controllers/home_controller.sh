@@ -192,7 +192,7 @@ read_from_network()
 			echo -e ${BASH_REMATCH[1]} > "$out"
 			echo -e ${BASH_REMATCH[2]} > "$out"
 			echo -e ${BASH_REMATCH[3]} > "$out"
-			if [[ ${BASH_REMATCH[3]} != $user_addr ]]; then
+			if [ ${BASH_REMATCH[3]} != $user_addr ] || [ ${BASH_REMATCH[2]} != ${username} ]; then
 				if set_discovered_user ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}; then
 					echo -e "Host added" > "$out"
 					echo "$unidisco" | socat -d -d -d - udp-sendto:${BASH_REMATCH[3]}:24000 >>"$logfile" 2>&1
