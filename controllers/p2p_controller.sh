@@ -81,9 +81,25 @@ function cleanup()
 		kill -15 $cli_pid 2>&1 | logp $logfile
 	fi
 
+	# tell view panel to exit
+	echo "exit" > "$loc_in"
 
-	# Exit with error
-	exit 1
+	# delete pipes
+	rm -f "$loc_out"
+	rm -f "$net_out"
+	rm -f "$net_in"
+
+	# Switch to home session
+	file_current="data/$cur_user/session_infos/current"
+	file_seslist="data/$cur_user/session_infos/sessions_list"
+	this_session=$(cat $file_current)
+	sed --in-place "/$this_session/d" $file_seslist
+	log "sed --in-place \"/$this_session/d\" $file_seslist"
+	echo "home" > $file_current
+	screen -d $this_session 2>&1 | logp
+
+	# exit
+	exit 0
 }
 
 
