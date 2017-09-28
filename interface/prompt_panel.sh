@@ -18,8 +18,8 @@ main()
 	while [ -p $out_pipe ]
 	do
 		read -t 0.5 cmd && clear && echo -ne " > "
-		if [ ! -z "$cmd" ]; then
-			echo -e "$cmd" > "$out_pipe"
+		if [ ! -z "${cmd// }" ]; then
+			echo "$cmd" > "$out_pipe"
 		fi
 	done
 }

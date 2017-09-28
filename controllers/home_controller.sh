@@ -79,7 +79,7 @@ read_from_room()
 	local conn_re="^(connect{1})([[:space:]]{1,5})([[:digit:]]{1,5})$"
 	local conn_no=-1
 	while [ -p $in ]; do
-		read input < $in
+		read input <> $in
 		if [[ "$input" =~ $conn_re ]]; then
 			input=${BASH_REMATCH[1]}
 			conn_no=${BASH_REMATCH[3]}
