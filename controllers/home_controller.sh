@@ -298,9 +298,11 @@ main()
 cleanup()
 {
 	# Simulate "exit" command in running sessions' prompt
-	for dir in $( find ${netchat_dir}/data/${username}/* ! -path '*session_infos*' ! -path '*home*' -type d ); do
+	for dir in $( find ${netchat_dir}/data/${username}/* ! -path "*session_infos*" ! -path "*/$username/home*" -type d ); do
 		if [[ -p ${dir}/out ]]; then
-			echo -ne "exit" > "$out"
+			echo "Sending \'exit\' in ${dir}/out pipe." >> "$logfile"
+			echo -ne "exit" > "${dir}/out"
+			sleep 1
 		fi
 	done
 
