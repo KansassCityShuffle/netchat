@@ -98,6 +98,7 @@ function cleanup()
 	echo "home" > $file_current
 	screen -d $this_session 2>&1 | logp
 
+	# exit
 	exit 0
 }
 
